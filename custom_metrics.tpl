@@ -46,7 +46,7 @@ endpoint="{{ .endpoint }}"
 # can be queried for metrics
 
 url: {{ default .istioPromURL "http://10.166.15.26:30009/api/v1/query" }}
-provider: custom
+provider: istio-prom
 method: GET
 metrics:
 - name: request-count
@@ -67,8 +67,9 @@ metrics:
   params:
   - name: query
     value: |
-      sum(istio_requests_total{
-        response_code=~'5..',
+      sum(prometheus_http_requests_total{
+        {{ template "istio-prom-dest" . }}
+      }) or on() vector(0) - sum(prometheus_http_requests_total{
         {{ template "istio-prom-dest" . }}
       }) or on() vector(0)
   jqExpression: .data.result[0].value[1] | tonumber
@@ -79,36 +80,11 @@ metrics:
   params:
   - name: query
     value: |
-      (sum(istio_requests_total{
-        response_code=~'5..',
+      ((sum(prometheus_http_requests_total{
         {{ template "istio-prom-dest" . }}
-      }) or on() vector(0))/(sum(istio_requests_total{
+      }) or on() vector(0)) - (sum(prometheus_http_requests_total{
+        {{ template "istio-prom-dest" . }}
+      }) or on() vector(0)))/(sum(prometheus_http_requests_total{
         {{ template "istio-prom-dest" . }}
       }) or on() vector(0))
   jqExpression: .data.result.[0].value.[1]
-- name: latency-mean
-  type: gauge
-  description: |
-    Mean latency
-  params:
-  - name: query
-    value: |
-      (sum(istio_request_duration_milliseconds_sum{
-        {{ template "istio-prom-dest" . }}
-      }) or on() vector(0))/(sum(istio_requests_total{
-        {{ template "istio-prom-dest" . }}
-      }) or on() vector(0))
-  jqExpression: .data.result[0].value[1] | tonumber
-{{- range $i, $p := .latencyPercentiles }}
-- name: latency-p{{ $p }}
-  type: gauge
-  description: |
-    {{ $p }} percentile latency
-  params:
-  - name: query
-    value: |
-      histogram_quantile(0.{{ $p }}, sum(rate(istio_request_duration_milliseconds_bucket{
-        {{ template "istio-prom-dest" $ }}
-      }) by (le))
-  jqExpression: .data.result[0].value[1] | tonumber
-{{- end }}
