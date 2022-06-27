@@ -45,7 +45,7 @@ endpoint="{{ .endpoint }}"
 # url is the HTTP endpoint where the Prometheus service installed by Istio's Prom add-on
 # can be queried for metrics
 
-url: {{ default .istioPromURL "http://10.166.15.26:30009/api/v1/query" }}
+url: "http://prometheus-k8s.monitoring/api/v1/query"
 provider: istio-prom
 method: GET
 metrics:
