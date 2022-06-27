@@ -46,7 +46,7 @@ endpoint="{{ .endpoint }}"
 # can be queried for metrics
 
 url: {{ default .istioPromURL "http://10.166.15.26:30009/api/v1/query" }}
-provider: istio-prom
+provider: custom
 method: GET
 metrics:
 - name: request-count
